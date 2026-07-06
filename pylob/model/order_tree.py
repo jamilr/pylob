@@ -6,6 +6,10 @@ from pylob.model import Order, OrderList
 
 
 class OrderTree:
+    """
+    OrderTree - a side-agnostic (sell/buy) tree of orders. Supports min and max price methods
+    to determine the best bid or best ask price at any point of time of runtime execution.
+    """
 
     def __init__(self):
         self.price_map = SortedDict()

@@ -6,6 +6,7 @@ from pylob.model.trade import Trade
 
 
 class OrderBookHelper:
+    """ OrderBookHelper - a helper methods for OrderBook class """
 
     @staticmethod
     def vwap(trades: List[Trade]) -> Decimal:

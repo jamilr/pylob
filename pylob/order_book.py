@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from decimal import Decimal, getcontext
 from typing import List, Tuple
 
+from pylob.model import MarketOrder, LimitOrder
 from pylob.model import Order, Side, OrderList
 from pylob.model.order_tree import OrderTree
 from pylob.model.trade import Trade
-from pylob.model import MarketOrder, LimitOrder, OrderType
 from pylob.order_book_helper import OrderBookHelper
 
 getcontext().prec = 6
@@ -25,13 +25,14 @@ class OrderExecutionResult:
 
 
 class OrderBook:
+    """ OrderBook / Marching Engine implementation """
+
     __USE_BUILTIN_ORDER_ID__ = True
 
     def __init__(self):
         self.bids = OrderTree()
         self.asks = OrderTree()
         self._last_order_id = 0
-        self.vwap = OrderBookHelper.vwap
 
     def best_bid_price(self):
         return self.bids.max_price()
@@ -138,26 +139,3 @@ class OrderBook:
 
     def __str__(self):
         return f'OrderBook(bids={self.bids}, asks={self.asks})'
-
-
-if __name__ == '__main__':
-    obook = OrderBook()
-    orders = [Order(Side.BUY, Decimal(122), 100),
-              Order(Side.BUY, Decimal(122), 100),
-              Order(Side.BUY, Decimal(124), 100),
-              Order(Side.BUY, Decimal(124), 200),
-              Order(Side.BUY, Decimal(125), 100),
-              Order(Side.BUY, Decimal(125), 200),
-              Order(Side.SELL, Decimal(130), 200),
-              Order(Side.SELL, Decimal(134), 100)]
-    for o in orders:
-        obook.add(o)
-
-    print(obook)
-    print(f'{obook.best_bid_price()} {obook.best_ask_price()}')
-    mkt_order = MarketOrder(OrderType.MARKET, Side.BUY, 250)
-
-    print(f'{mkt_order}')
-    qty, price = obook.execute(mkt_order)
-    print(f'price={price}, qty={qty}')
-    print(f'B={obook.best_bid_price()} A={obook.best_ask_price()}')

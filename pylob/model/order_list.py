@@ -2,7 +2,10 @@ from pylob.model.order import Order
 
 
 class OrderList:
-    """ OrderList - a double-linked list of orders """
+    """
+    OrderList - a double-linked list of orders (sell orders, or buy orders)
+    Supports traversal of orders using for loop
+    """
 
     def __init__(self):
         self.head_order = None

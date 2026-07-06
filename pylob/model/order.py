@@ -9,6 +9,11 @@ class Side(IntEnum):
 
 @dataclass
 class Order:
+    """
+    Order - a market order data model. id is Optional since it is updated by the OrderBook.
+    It is a doubly-linked node supporting a lookup for a previous or a next order.
+    """
+
     side: Side
     price: Decimal
     quantity: int = 0

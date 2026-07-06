@@ -5,7 +5,11 @@ from typing import List, Tuple
 
 from pylob.model import Order, Side, OrderList
 from pylob.model.order_tree import OrderTree
+from pylob.model.trade import Trade
+from pylob.order_book_helper import OrderBookHelper
+
 getcontext().prec = 6
+
 
 class OrderType(Enum):
     MARKET = 1
@@ -35,18 +39,15 @@ class LimitOrder(TradeOrder):
     price: Decimal
 
 
-@dataclass
-class Trade:
-    id: int
-    quantity: int
-    price: Decimal | None = None
-
-
 class OrderBook:
+
+    __USE_BUILTIN_ORDER_ID__ = True
 
     def __init__(self):
         self.bids = OrderTree()
         self.asks = OrderTree()
+        self._last_order_id = 0
+        self.vwap = OrderBookHelper.vwap
 
     def best_bid_price(self):
         return self.bids.max_price()
@@ -69,19 +70,31 @@ class OrderBook:
         return self.bids.price_map[best_bid_price]
 
     def add(self, order: Order):
+        if self.__USE_BUILTIN_ORDER_ID__ and order.id is None:
+            order.id = self._next_order_id()
         if order.side == Side.BUY:
             self.bids.add_order(order)
         else:
             self.asks.add_order(order)
 
-    def execute(self, order: TradeOrder) -> Tuple[int, Decimal]:
-        if order.order_type == OrderType.MARKET:
-            order = MarketOrder.create(order)
-            executed_trades: List[Trade] = self._execute_market_order(order)
-            return (order.quantity, self.vwap(executed_trades))
-
+    def remove(self, order: Order):
+        if order.side == Side.SELL:
+            self.asks.remove_order(order)
         else:
-            raise NotImplementedError('Limit order execution is yet to be implemented.')
+            self.bids.remove_order(order)
+
+    def execute(self, order: TradeOrder | MarketOrder | LimitOrder) -> Tuple[int, Decimal]:
+        if order.order_type == OrderType.MARKET:
+            if isinstance(order, TradeOrder):
+                order = MarketOrder.create(order)
+            executed_trades: List[Trade] = self._execute_market_order(order)
+            return order.quantity, self.vwap(executed_trades)
+        else:
+            if not isinstance(order, LimitOrder):
+                raise ValueError(f'Order is not a limit order')
+            executed_trades: List[Trade] = self._execute_limit_order(order)
+            total_qty = sum(map(lambda x: x.quantity, executed_trades))
+            return total_qty, self.vwap(executed_trades)
 
     def _execute_market_order(self, order: MarketOrder):
         executed_trades: List[Trade] = []
@@ -117,21 +130,33 @@ class OrderBook:
                 quantity_to_trade = quantity_to_trade - order.quantity
                 traded_quantity = order.quantity
                 to_remove = True
-            trades.append(Trade(id=order.id, price=order.price, quantity=traded_quantity))
+            trades.append(Trade(price=order.price, quantity=traded_quantity))
             if to_remove:
-                if order.side == Side.SELL:
-                    self.asks.remove_order(order)
-                else:
-                    self.bids.remove_order(order)
+                self.remove(order)
         return quantity_to_trade, trades
 
-    def vwap(self, trades: List[Trade]) -> Decimal:
-        """ Returns the VWAP price for the list of trades """
-        num, total_qty = 0, 0
-        for trade in trades:
-            num += trade.quantity * trade.price
-            total_qty += trade.quantity
-        return Decimal(num / total_qty)
+    def _execute_limit_order(self, order: LimitOrder) -> List[Trade]:
+        executed_trades, qty_to_trade = [], order.quantity
+        if order.side == Side.SELL:
+            while self.bids and self.best_bid_price() > order.price and qty_to_trade > 0:
+                best_bid_price_order_list = self.best_bid_price_list()
+                qty_to_trade, trades = self._match(qty_to_trade, best_bid_price_order_list)
+                executed_trades.extend(trades)
+            if qty_to_trade > 0:
+                self.add(Order(side=Side.SELL, price=order.price, quantity=qty_to_trade))
+        else:
+            while self.asks and order.price > self.best_ask_price() and qty_to_trade > 0:
+                best_ask_price_order_list = self.best_ask_price_list()
+                qty_to_trade, trades = self._match(order.quantity, best_ask_price_order_list)
+                executed_trades.extend(trades)
+            if qty_to_trade > 0:
+                self.add(Order(side=Side.BUY, price=order.price, quantity=qty_to_trade))
+        return executed_trades
+
+    def _next_order_id(self) -> int:
+        id_to_return = self._last_order_id
+        self._last_order_id += 1
+        return id_to_return
 
     def __str__(self):
         return f'OrderBook(bids={self.bids}, asks={self.asks})'
@@ -139,14 +164,14 @@ class OrderBook:
 
 if __name__ == '__main__':
     obook = OrderBook()
-    orders = [Order(0, Side.BUY, Decimal(122), 100),
-              Order(1, Side.BUY, Decimal(122), 100),
-              Order(2, Side.BUY, Decimal(124), 100),
-              Order(3, Side.BUY, Decimal(124), 200),
-              Order(4, Side.BUY, Decimal(125), 100),
-              Order(5, Side.BUY, Decimal(125), 200),
-              Order(6, Side.SELL, Decimal(130), 200),
-              Order(7, Side.SELL, Decimal(134), 100)]
+    orders = [Order(Side.BUY, Decimal(122), 100),
+              Order(Side.BUY, Decimal(122), 100),
+              Order(Side.BUY, Decimal(124), 100),
+              Order(Side.BUY, Decimal(124), 200),
+              Order(Side.BUY, Decimal(125), 100),
+              Order(Side.BUY, Decimal(125), 200),
+              Order(Side.SELL, Decimal(130), 200),
+              Order(Side.SELL, Decimal(134), 100)]
     for o in orders:
         obook.add(o)
 

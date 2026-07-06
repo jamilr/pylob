@@ -12,24 +12,24 @@ class TestOrderList:
 
     @pytest.fixture
     def single_order(self) -> Order:
-        return Order(1, Side.BUY, Decimal(100.0), 100)
+        return Order(Side.BUY, Decimal(100.0), 100)
 
     @pytest.fixture
     def same_price_buy_orders(self) -> List[Order]:
         return [
-            Order(1, Side.BUY, Decimal(100.0), 50),
-            Order(2, Side.BUY, Decimal(100.0), 30),
-            Order(3, Side.BUY, Decimal(100.0), 35),
-            Order(4, Side.BUY, Decimal(100.0), 40),
+            Order(Side.BUY, Decimal(100.0), 50),
+            Order(Side.BUY, Decimal(100.0), 30),
+            Order(Side.BUY, Decimal(100.0), 35),
+            Order(Side.BUY, Decimal(100.0), 40),
         ]
 
     @pytest.fixture
     def same_price_sell_orders(self) -> List[Order]:
         return [
-            Order(1, Side.SELL, Decimal(100.0), 50),
-            Order(2, Side.SELL, Decimal(100.0), 30),
-            Order(3, Side.SELL, Decimal(100.0), 35),
-            Order(4, Side.SELL, Decimal(100.0), 45),
+            Order(Side.SELL, Decimal(100.0), 50),
+            Order(Side.SELL, Decimal(100.0), 30),
+            Order(Side.SELL, Decimal(100.0), 35),
+            Order(Side.SELL, Decimal(100.0), 45),
         ]
 
     @pytest.fixture

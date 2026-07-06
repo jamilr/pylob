@@ -9,10 +9,10 @@ class Side(IntEnum):
 
 @dataclass
 class Order:
-    id: int
     side: Side
-    price: Optional[Decimal] = None
+    price: Decimal
     quantity: int = 0
+    id: Optional[int] = None
     prev_order: Optional['Order'] = None
     next_order: Optional['Order'] = None
 
@@ -20,5 +20,5 @@ class Order:
         self.quantity = new_qty
 
     def __str__(self):
-        return f"Order({self.id}, {self.side.name}, {self.price}, {self.quantity})"
+        return f"Order({self.side.name}, {self.price}, {self.quantity}, {self.id})"
 

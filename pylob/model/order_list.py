@@ -1,6 +1,4 @@
-from decimal import Decimal
-
-from pylob.model.order import Order, Side
+from pylob.model.order import Order
 
 
 class OrderList:
@@ -69,15 +67,3 @@ class OrderList:
     def print(order_list):
         for order in order_list:
             print(order)
-
-
-if __name__ == '__main__':
-    order_list = OrderList()
-    orders = [Order(1, Side.BUY, Decimal(124), 100),
-              Order(2, Side.SELL, Decimal(125), 100),
-              Order(3, Side.BUY, Decimal(130), 200)]
-    for o in orders:
-        order_list.append(o)
-    OrderList.print(order_list)
-    order_list.move_to_tail(orders[1])
-    OrderList.print(order_list)

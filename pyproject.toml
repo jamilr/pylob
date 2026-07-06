@@ -1,0 +1,19 @@
+[project]
+name = "PyLOB"
+license = { file = "LICENSE.txt" }
+description = "Python Limit Order Book"
+maintainers = [
+    { name = "Jamil Rzayev", email = "j.r.github@gmail.com" },
+]
+requires-python = ">=3.10"  # keep in sync with `min_python_version` in meson.build
+dependencies = [
+    "sortedcontainers>=2.4.0",
+] # keep in sync with `min_numpy_version` in meson.build
+readme = "README.rst"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]

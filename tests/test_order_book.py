@@ -4,7 +4,8 @@ from typing import List
 import pytest
 
 from pylob.model import Order, Side
-from pylob.order_book import OrderBook, MarketOrder, OrderType, LimitOrder
+from pylob.model.trade_order import MarketOrder, LimitOrder, OrderType
+from pylob.order_book import OrderBook
 from pylob.order_book_helper import OrderBookHelper
 from tests.base_test import BaseTestOrderBook
 
@@ -58,9 +59,9 @@ class TestOrderBook:
 
         assert order_book.bids_depth() == 3
         assert order_book.asks_depth() == 4
-        qty_traded, vwap_price = order_book.execute(market_order)
-        assert qty_traded == 100
-        assert vwap_price > Decimal(126.0)
+        result = order_book.execute(market_order)
+        assert result.quantity == 100
+        assert result.vwap > Decimal(126.0)
         assert order_book.best_bid_price() == Decimal(125.0)
         assert order_book.best_ask_price() == Decimal(129.0)
         assert order_book.bids_depth() == 3
@@ -69,9 +70,9 @@ class TestOrderBook:
     def test_execute_limit_order_full_fill(self, order_book, orders_from_csv, limit_order):
         for order in orders_from_csv:
             order_book.add(order)
-        qty, vwap = order_book.execute(limit_order)
-        assert qty == 100
-        assert vwap == Decimal(100.0)
+        result = order_book.execute(limit_order)
+        assert result.quantity == 100
+        assert result.vwap == Decimal(100.0)
 
     def test_execute_sell_limit_order_partial_fill(self, order_book, orders_from_csv):
         for order in orders_from_csv:
@@ -79,9 +80,9 @@ class TestOrderBook:
         assert order_book.best_bid_price() == Decimal(100.0)
         assert order_book.best_ask_price() == Decimal(105.0)
         limit_order = LimitOrder(OrderType.LIMIT, Side.SELL, 200, Decimal(99.0))
-        qty, vwap = order_book.execute(limit_order)
-        assert qty == 100
-        assert vwap == Decimal(100.0)
+        result = order_book.execute(limit_order)
+        assert result.quantity == 100
+        assert result.vwap == Decimal(100.0)
         assert order_book.best_bid_price() == Decimal(90.0)
         assert order_book.best_ask_price() == Decimal(99.0)
 
@@ -91,8 +92,8 @@ class TestOrderBook:
         assert order_book.best_bid_price() == Decimal(100.0)
         assert order_book.best_ask_price() == Decimal(105.0)
         limit_order = LimitOrder(OrderType.LIMIT, Side.BUY, 200, Decimal(106.0))
-        qty, vwap = order_book.execute(limit_order)
-        assert qty == 100
-        assert vwap == Decimal(105.0)
+        result = order_book.execute(limit_order)
+        assert result.quantity == 100
+        assert result.vwap == Decimal(105.0)
         assert order_book.best_bid_price() == Decimal(106.0)
         assert order_book.best_ask_price() == Decimal(110.0)

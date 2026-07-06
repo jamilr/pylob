@@ -1,46 +1,30 @@
 from dataclasses import dataclass
 from decimal import Decimal, getcontext
-from enum import Enum
 from typing import List, Tuple
 
 from pylob.model import Order, Side, OrderList
 from pylob.model.order_tree import OrderTree
 from pylob.model.trade import Trade
+from pylob.model import MarketOrder, LimitOrder, OrderType
 from pylob.order_book_helper import OrderBookHelper
 
 getcontext().prec = 6
 
 
-class OrderType(Enum):
-    MARKET = 1
-    LIMIT = 2
-
-
 @dataclass
-class TradeOrder:
-    order_type: OrderType
-    side: Side
-    quantity: int
+class OrderExecutionResult:
+    trades: List[Trade]
+    quantity: int = 0
 
+    def __post_init__(self):
+        self.quantity = sum(trade.quantity for trade in self.trades)
 
-@dataclass
-class MarketOrder(TradeOrder):
-
-    @staticmethod
-    def create(order: TradeOrder) -> 'MarketOrder':
-        return MarketOrder(order.order_type, order.side, order.quantity)
-
-    def __str__(self):
-        return f'MarketOrder(type={self.order_type.name}, side={self.side.name}, quantity={self.quantity})'
-
-
-@dataclass
-class LimitOrder(TradeOrder):
-    price: Decimal
+    @property
+    def vwap(self) -> Decimal:
+        return OrderBookHelper.vwap(self.trades)
 
 
 class OrderBook:
-
     __USE_BUILTIN_ORDER_ID__ = True
 
     def __init__(self):
@@ -83,18 +67,12 @@ class OrderBook:
         else:
             self.bids.remove_order(order)
 
-    def execute(self, order: TradeOrder | MarketOrder | LimitOrder) -> Tuple[int, Decimal]:
-        if order.order_type == OrderType.MARKET:
-            if isinstance(order, TradeOrder):
-                order = MarketOrder.create(order)
-            executed_trades: List[Trade] = self._execute_market_order(order)
-            return order.quantity, self.vwap(executed_trades)
-        else:
-            if not isinstance(order, LimitOrder):
-                raise ValueError(f'Order is not a limit order')
-            executed_trades: List[Trade] = self._execute_limit_order(order)
-            total_qty = sum(map(lambda x: x.quantity, executed_trades))
-            return total_qty, self.vwap(executed_trades)
+    def execute(self, order_to_trade: MarketOrder | LimitOrder) -> OrderExecutionResult:
+        exec_mkt_order = self._execute_market_order
+        exec_lmt_order = self._execute_limit_order
+        executed_trades = exec_mkt_order(order_to_trade) if isinstance(order_to_trade, MarketOrder) else exec_lmt_order(
+            order_to_trade)
+        return OrderExecutionResult(trades=executed_trades)
 
     def _execute_market_order(self, order: MarketOrder):
         executed_trades: List[Trade] = []
